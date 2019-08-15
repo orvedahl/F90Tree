@@ -78,7 +78,7 @@ class FortranFile():
                     sprogram = sprog.search(line)
                     eprogram = eprog.search(line)
                     # re.search(line) returns if it is found and what the match is
-                    # group(i) returns the i-th parenthesized subgroup of the search pattern
+                    # group(i) = the i-th parenthesized subgroup of the search pattern
                     #     i=0 is whole thing
                     #     i=1 is possible space
                     #     i=2 is function|program|subroutine
@@ -86,7 +86,7 @@ class FortranFile():
                     #     i=4 is the name
                     #     i=5 is possible space (functions/subroutines only)
                     #     i=6 is an opening parenthesis (functions/subroutines only)
-                    if (sprogram and not(eprogram)): # ensure this is the beginning, not end
+                    if (sprogram and not(eprogram)): # this is the beginning, not end
                         Pname = program.group(4).strip()  # get the main program name
                         Pname = Pname.split("!")[0]       # strip off comments
                         self.main_name = Pname
@@ -114,9 +114,11 @@ class FortranFile():
                         names = names.split(",")
                         for n in names:
                             self.interfaces[Iname].append(n)
+                        continue
 
                 if (einterface): # this is the end
                     start_interface = False
+                    continue
 
                 ####################################
                 # functions

@@ -9,8 +9,15 @@ def Parse():
 
     # for each file
     #    -determine who owns the main program
-    #    -get list of function definitions
-    #    -get list of subroutine definitions
+    #    -get list of function definitions contained in the file
+    #    -get list of subroutine definitions contained in the file
+    #
+    # generate a global list of functions/subroutines
+
+    # ? make a map of routine_name --> filename
+
+    # for all functions/subroutines
+    #     parse the definition to determine what funcs/subroutines it calls
 
     # in the main program
     #    -get list of calls
