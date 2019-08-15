@@ -1,0 +1,48 @@
+
+=====================================================================
+F90Tree --- Ryan J. Orvedahl, 2019
+=====================================================================
+Python utilities to parse Fortran source code to determine the calling tree.
+
+Suppose there is a Fortran program with the following:
+
+    program main
+        ...
+        call sub1(...)
+        call sub2(...)
+
+        contains
+            subroutine sub1(...)
+                call subroutine sub4()
+            end subroutine sub1
+
+            subroutine sub2(...)
+                call subroutine sub3()
+            end subroutine sub2
+
+            subroutine sub3(...)
+                call subroutine sub5()
+            end subroutine sub3
+
+            subroutine sub4(...)
+                call subroutine sub5()
+            end subroutine sub4
+
+            subroutine sub5(...)
+                ...
+            end subroutine sub5
+    end program main
+
+Then running this utility should produce the following tree
+
+    main
+        |-sub1
+            |-sub4
+                |-sub5
+        |-sub2
+            |-sub3
+                |-sub5
+
+The various subroutines can be spread across different files
+and/or stored in modules.
+
