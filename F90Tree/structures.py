@@ -168,7 +168,7 @@ def FindDefinitions(filename):
     for s in subnames:
         definitions[s] = filename
 
-def ParseFile(filename, names, callable_names):
+def ParseFile(filename, callable_names):
     """
     Parse a Fortran file to determine what routines each function/subroutine calls
 
@@ -176,8 +176,6 @@ def ParseFile(filename, names, callable_names):
     ----
     filename : string
         The filename of the Fortran source code to parse
-    names : list
-        List of function/subroutine names that will be searched
     callable_names : list
         Global list of all suitable function names, including interface functions
 

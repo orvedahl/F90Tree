@@ -17,11 +17,12 @@ def Parse(directory, include_ext=[], exclude_dirs=[]):
     filenames   = {} # dictionary holding routine_name:filename pairs
     funcnames   = {} # dictionary holding filename:[routine_names] pairs
     calls       = {} # dictionary holding routine_name:[list of routine calls]
-                     # where each element in the value is actually a list of [name, calltype]
+                     # where each value is actually a list of [name, calltype]
     numcalls    = {} # dictionary holding routine_name:number_of_calls
+    filecalls   = {} # dictionary holding filename:dict("calls":calls, "ncalls":numcalls)
 
     # get global list of functions/subroutines/interfaces
-    for f in fortranfiles:
+    for f in files:
         fnames, snames, ints, defs, has_main, main = FindDefinitions(f)
         functions += fnames
         subroutines += snames
@@ -34,14 +35,22 @@ def Parse(directory, include_ext=[], exclude_dirs=[]):
 
     valid_callables = functions + list(interfaces.keys())
 
-    for fname in functions:
-        filename = filenames[fname]
-        funcs    = funcnames[filename]
-        c,n = ParseFile(filename, funcs, valid_callables)
+    # re-read each file to get what calls each function/subroutine make
+    for f in files:
+        c, n = ParseFile(filename, valid_callables)
+        filecalls[f] = {"calls":c, "ncalls":n}
         calls.update(c)
         numcalls.update(n)
 
-    # try to use numcalls to determine how to build the tree
+    # put the main program file first
+    files.remove(main_program_file)
+    files.insert(0, main_program_file)
+
+    for f in files:
+        ncalls = filecalls[f]
+        if (ncalls == 0):
+            continue
+        else:
 
     # in the main program
     #    -get list of calls
@@ -51,6 +60,12 @@ def Parse(directory, include_ext=[], exclude_dirs=[]):
     #            -get list of calls
     #            ...
     #                ...
+def GetTree(calls, ncalls):
+    if (ncalls == 0):
+        return
+    else:
+        return GetTree(calls, ncalls)
+
     # need routine that will
     #    1) get list of calls
     #    if no calls, return some code
