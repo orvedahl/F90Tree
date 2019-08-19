@@ -1,3 +1,32 @@
 
 To install this package:
 
+	1) set the F90TreeDir environment variable
+
+	2) from within the F90TreeDir directory, execute the install script
+
+For python 2 support:
+	export F90TreeDir=/path/to/F90Tree/
+
+	cd $F90TreeDir
+
+	bin/install.sh 2
+
+For python 3 support
+	export F90TreeDir=/path/to/F90Tree/
+
+	cd $F90TreeDir
+
+	bin/install.sh 3
+
+Odd situations:
+
+	use a specific python executable for version 2.7:
+		bin/install 2 python2.7
+
+	use a specific python executable for version 3.6:
+		bin/install 3 python3.6
+
+	the "python" command actually points to a python 3 installation:
+		bin/install 3 python
+

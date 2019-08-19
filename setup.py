@@ -1,7 +1,7 @@
 """
 setup file
 """
-from __future__ import division, print_function
+from __future__ import print_function
 import datetime
 import setuptools
 from numpy.distutils.core import setup
@@ -34,14 +34,6 @@ def run_setup():
         print("\n\tit is best to add this line to the ~/.cshrc file in order")
         print("\tto avoid having to do this every time a new shell is opened\n")
         sys.exit("failed to complete install process\n")
-
-    # read package configure file
-    configure = ConfigParser()
-    configure.read('f90tree.cfg')
-    buildf90 = configure.getboolean("fortran-support", "INCLUDE_F90_SOURCE")
-    f90comp  = configure.get("fortran-support", "F90_COMPILER").lower()
-    f90debug = configure.getboolean("fortran-support", "DEBUG_FLAGS")
-    architecture = configure.get("fortran-support", "ARCHITECTURE").lower()
 
     # set version
     MAJOR = 0
@@ -103,7 +95,6 @@ def run_setup():
 
     with open(installed_opts_cfg, "w") as configfile:
         newconfig.write(configfile)
-        configure.write(configfile)
 
     if (sys.argv[1] == "install"):
         print("\n============================\n")

@@ -34,12 +34,12 @@ def FindDefinitions(filename):
         The name of the main program if it was found, None if it was not found
     """
 
-    contains_main = False
-    main_name     = None
     funcnames     = [] # list of function names
     subnames      = [] # list of subroutine names
     interfaces    = {} # maps the interface to the possible calling routines
     definitions   = {} # maps the routine name to the filename
+    contains_main = False
+    main_name     = None
 
     if (not os.path.isfile(filename)):
         print("ERROR: {} does not exist, skipping".format(filename))
@@ -80,7 +80,7 @@ def FindDefinitions(filename):
     found_main = False
     start_interface = False
 
-    print("parsing file = {}".format(filename))
+    print("\tparsing file = {}".format(filename))
     with open(filename, 'r') as mf:
 
         for _line in mf:
@@ -110,8 +110,9 @@ def FindDefinitions(filename):
                 #     i=3 is one or more spaces
                 #     i=4 is the name
                 if (sprogram and not(eprogram)): # ensure this is the beginning, not end
-                    Pname = program.group(4).strip()
+                    Pname = sprogram.group(4).strip()
                     main_name = Pname
+                    funcnames.append(main_name)
                     contains_main = True
                     found_main = True
                     continue
@@ -168,6 +169,8 @@ def FindDefinitions(filename):
     for s in subnames:
         definitions[s] = filename
 
+    return funcnames, subnames, interfaces, definitions, contains_main, main_name
+
 def ParseFile(filename, callable_names):
     """
     Parse a Fortran file to determine what routines each function/subroutine calls
@@ -177,7 +180,7 @@ def ParseFile(filename, callable_names):
     filename : string
         The filename of the Fortran source code to parse
     callable_names : list
-        Global list of all suitable function names, including interface functions
+        Global list of all suitable function/subroutine names, including interface names
 
     Returns
     -------
@@ -193,6 +196,10 @@ def ParseFile(filename, callable_names):
     calls    = OrderedDict()
     numcalls = OrderedDict()
 
+    sprogram = re.compile("(\s*)(program)(\s+)((?:[a-z_][a-z_0-9]+))",
+                          re.IGNORECASE|re.DOTALL)
+    eprogram = re.compile("(\s*)(end)(\s+)(program)(\s+)((?:[a-z_][a-z_0-9]+))",
+                          re.IGNORECASE|re.DOTALL)
     sfuncdef = re.compile("(\s*)(function)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)(\()",
                           re.IGNORECASE|re.DOTALL)
     efuncdef = re.compile("(\s*)(end)(\s+)(function)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)(\()",
@@ -207,6 +214,7 @@ def ParseFile(filename, callable_names):
 
     start_parse = False
 
+    print("\tparsing file = {}".format(filename))
     with open(filename, 'r') as mf:
 
         for _line in mf:
@@ -221,13 +229,25 @@ def ParseFile(filename, callable_names):
             if (i > 0):        # so protect against that.
                 line = line[i:]
 
+            sprog = sprogram.search(line) # is this the main program
+            eprog = eprogram.search(line)
+            if (sprog and not(eprog)):
+                start_parse = True
+                Cname = sprog.group(4).strip()
+                if (Cname not in calls.keys()):
+                    calls[Cname] = []
+                continue
+            if (eprog):
+                start_parse = False
+                continue
+
             sfunc = sfuncdef.search(line) # is this a function definition
             efunc = efuncdef.search(line)
             if (sfunc and not(efunc)):
                 start_parse = True
-                Fname = sfunc.group(4).strip()
-                if (Fname not in calls.keys()):
-                    calls[Fname] = []
+                Cname = sfunc.group(4).strip()
+                if (Cname not in calls.keys()):
+                    calls[Cname] = []
                 continue
             if (efunc):
                 start_parse = False
@@ -237,9 +257,9 @@ def ParseFile(filename, callable_names):
             esub = esubdef.search(line)
             if (ssub and not(esub)):
                 start_parse = True
-                Sname = ssub.group(4).strip()
-                if (Sname not in calls.keys()):
-                    calls[Sname] = []
+                Cname = ssub.group(4).strip()
+                if (Cname not in calls.keys()):
+                    calls[Cname] = []
                 continue
             if (esub):
                 start_parse = False
@@ -251,13 +271,13 @@ def ParseFile(filename, callable_names):
                     s = sub_call.search(line)
                     if (s): # this is definitely a subroutine call
                         name = s.group(4).strip()
-                        calls[Sname].append([name, "s"])
-                        continue
+                        if (name in callable_names): # this is a valid subroutine call
+                            calls[Cname].append([name, "s"])
                     else: # this could be a function call or an array operation
                         name = c.group(2).strip()
                         if (name in callable_names): # this is a valid function call
-                            calls[Fname].append([name, "f"])
-                            continue
+                            calls[Cname].append([name, "f"])
+                continue
 
     # compute total number of calls in each routine
     for k in calls.keys():

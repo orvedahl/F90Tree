@@ -1,4 +1,6 @@
-import config
+
+from __future__ import print_function
+from config import config
 
 # extract some build information
 __name__        = config.get("installed-options", "name")
