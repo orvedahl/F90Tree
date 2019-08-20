@@ -4,7 +4,7 @@ setup file
 from __future__ import print_function
 import datetime
 import setuptools
-from numpy.distutils.core import setup
+from distutils.core import setup
 import sys
 import os
 import os.path as osp
@@ -45,7 +45,7 @@ def run_setup():
     PACKAGES=setuptools.find_packages()
 
     # specify packages that F90Tree requires
-    INSTALL_REQUIRES=["docopt"]
+    INSTALL_REQUIRES=["docopt", "numpy"]
 
     # various other package descriptors
     NAME = "F90Tree"

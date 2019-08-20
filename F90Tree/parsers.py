@@ -6,7 +6,7 @@ import os
 import re
 from collections import OrderedDict
 
-def FindDefinitions(filename):
+def FindDefinitions(filename, verbose=False):
     """
     Parse a Fortran file for function/subroutine definitions
 
@@ -14,6 +14,8 @@ def FindDefinitions(filename):
     ----
     filename : string
         The filename of the Fortran source code to parse
+    verbose : bool, optional
+        Print more information to screen
 
     Returns
     -------
@@ -49,6 +51,7 @@ def FindDefinitions(filename):
     # (\s*) = 0 or more white space
     # (\s+) = 1 or more white space
     # (end) = "end"
+    # ^     = start of the line
     # ((?:[a-z_][a-z_0-9]+)) = pretty much any fortran acceptable variable name
     #    ?: matches whatever follows, but cant be stored unless the entire re.compile()
     #       is set equal to something. This is more efficient than searching each time
@@ -57,30 +60,31 @@ def FindDefinitions(filename):
     #    the following "+" results in 1 or more repetitions of what came before it
     #    | is logical OR
     #    DOTALL allows the "." character to include newlines, it usually doesn't
-    sfunc = re.compile("(\s*)(function)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)(\()",
+    sfunc = re.compile("(\s*)(function)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)",
                         re.IGNORECASE|re.DOTALL)
-    sprog = re.compile("(\s*)(program)(\s+)((?:[a-z_][a-z_0-9]+))",
+    sprog = re.compile("(^\s*)(program)(\s+)((?:[a-z_][a-z_0-9]+))",
                         re.IGNORECASE|re.DOTALL)
-    sintr = re.compile("(\s*)(interface)(\s+)((?:[a-z_][a-z_0-9]+))",
+    sintr = re.compile("(^\s*)(interface)(\s+)((?:[a-z_][a-z_0-9]+))",
                         re.IGNORECASE|re.DOTALL)
-    ssubr = re.compile("(\s*)(subroutine)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)(\()",
+    ssubr = re.compile("(^\s*)(subroutine)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)",
                         re.IGNORECASE|re.DOTALL)
-    efunc = re.compile("(\s*)(end)(\s+)(function)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)(\()",
+    efunc = re.compile("(^\s*)(end)(\s+)(function)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)",
                         re.IGNORECASE|re.DOTALL)
-    eprog = re.compile("(\s*)(end)(\s+)(program)(\s+)((?:[a-z_][a-z_0-9]+))",
+    eprog = re.compile("(^\s*)(end)(\s+)(program)(\s+)((?:[a-z_][a-z_0-9]+))",
                         re.IGNORECASE|re.DOTALL)
-    eintr = re.compile("(\s*)(end)(\s+)(interface)(\s+)((?:[a-z_][a-z_0-9]+))",
+    eintr = re.compile("(^\s*)(end)(\s+)(interface)(\s+)((?:[a-z_][a-z_0-9]+))",
                         re.IGNORECASE|re.DOTALL)
-    esubr = re.compile("(\s*)(end)(\s+)(subroutine)(\s+)((?:[a-z_][a-z_0-9]+))",
+    esubr = re.compile("(^\s*)(end)(\s+)(subroutine)(\s+)((?:[a-z_][a-z_0-9]+))",
                         re.IGNORECASE|re.DOTALL)
-    modpr = re.compile("(\s*)(module)(\s+)(procedure)(\s+)((?:[a-z_][a-z_0-9]+))",
+    modpr = re.compile("(^\s*)(module)(\s+)(procedure)(\s+)((?:[a-z_][a-z_0-9]+))",
                         re.IGNORECASE|re.DOTALL)
     paren = re.compile("(\s*)(\()", re.IGNORECASE|re.DOTALL)
 
     found_main = False
     start_interface = False
 
-    print("\tparsing file = {}".format(filename))
+    if (verbose):
+        print("\tparsing file = {}".format(filename))
     with open(filename, 'r') as mf:
 
         for _line in mf:
@@ -93,7 +97,7 @@ def FindDefinitions(filename):
             i = line.find("!") # strip off any trailing comments. find returns -1
                                # if substring is not found, but -1 is a valid slice index
             if (i > 0):        # so protect against that.
-                line = line[i:]
+                line = line[:i]
 
             ####################################
             # main program definition
@@ -125,7 +129,7 @@ def FindDefinitions(filename):
             par        = paren.search(line) # valid interface blocks should not have "("
             if (sinterface and not(einterface) and not(par)):
                 start_interface = True
-                Iname = interface.group(4).strip()
+                Iname = sinterface.group(4).strip()
                 interfaces[Iname] = []
                 continue
 
@@ -171,7 +175,7 @@ def FindDefinitions(filename):
 
     return funcnames, subnames, interfaces, definitions, contains_main, main_name
 
-def ParseFile(filename, callable_names):
+def ParseFile(filename, callable_names, verbose=False):
     """
     Parse a Fortran file to determine what routines each function/subroutine calls
 
@@ -181,6 +185,8 @@ def ParseFile(filename, callable_names):
         The filename of the Fortran source code to parse
     callable_names : list
         Global list of all suitable function/subroutine names, including interface names
+    verbose : bool, optional
+        Print more information to screen
 
     Returns
     -------
@@ -196,17 +202,17 @@ def ParseFile(filename, callable_names):
     calls    = OrderedDict()
     numcalls = OrderedDict()
 
-    sprogram = re.compile("(\s*)(program)(\s+)((?:[a-z_][a-z_0-9]+))",
+    sprogram = re.compile("(^\s*)(program)(\s+)((?:[a-z_][a-z_0-9]+))",
                           re.IGNORECASE|re.DOTALL)
-    eprogram = re.compile("(\s*)(end)(\s+)(program)(\s+)((?:[a-z_][a-z_0-9]+))",
+    eprogram = re.compile("(^\s*)(end)(\s+)(program)(\s+)((?:[a-z_][a-z_0-9]+))",
                           re.IGNORECASE|re.DOTALL)
-    sfuncdef = re.compile("(\s*)(function)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)(\()",
+    sfuncdef = re.compile("(\s*)(function)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)",
                           re.IGNORECASE|re.DOTALL)
-    efuncdef = re.compile("(\s*)(end)(\s+)(function)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)(\()",
+    efuncdef = re.compile("(^\s*)(end)(\s+)(function)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)",
                           re.IGNORECASE|re.DOTALL)
-    ssubdef  = re.compile("(\s*)(subroutine)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)(\()",
+    ssubdef  = re.compile("(^\s*)(subroutine)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)",
                           re.IGNORECASE|re.DOTALL)
-    esubdef  = re.compile("(\s*)(end)(\s+)(subroutine)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)(\()",
+    esubdef  = re.compile("(^\s*)(end)(\s+)(subroutine)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)",
                           re.IGNORECASE|re.DOTALL)
     some_call = re.compile("(\s*)((?:[a-z_][a-z_0-9]+))(\s*)(\()", re.IGNORECASE|re.DOTALL)
     sub_call  = re.compile("(\s*)(call)(\s+)((?:[a-z_][a-z_0-9]+))(\s*)(\()",
@@ -214,7 +220,8 @@ def ParseFile(filename, callable_names):
 
     start_parse = False
 
-    print("\tparsing file = {}".format(filename))
+    if (verbose):
+        print("\tparsing file = {}".format(filename))
     with open(filename, 'r') as mf:
 
         for _line in mf:
@@ -227,14 +234,14 @@ def ParseFile(filename, callable_names):
             i = line.find("!") # strip off any trailing comments. find returns -1
                                # if substring is not found, but -1 is a valid slice index
             if (i > 0):        # so protect against that.
-                line = line[i:]
+                line = line[:i]
 
             sprog = sprogram.search(line) # is this the main program
             eprog = eprogram.search(line)
             if (sprog and not(eprog)):
                 start_parse = True
                 Cname = sprog.group(4).strip()
-                if (Cname not in calls.keys()):
+                if (Cname not in calls.keys()): # always include the main program
                     calls[Cname] = []
                 continue
             if (eprog):
@@ -244,10 +251,14 @@ def ParseFile(filename, callable_names):
             sfunc = sfuncdef.search(line) # is this a function definition
             efunc = efuncdef.search(line)
             if (sfunc and not(efunc)):
-                start_parse = True
+                i = line.find("function")
+                if ("'" in line[:i]): continue # these hopefully catch: "function 2"
+                if ('"' in line[:i]): continue
                 Cname = sfunc.group(4).strip()
                 if (Cname not in calls.keys()):
-                    calls[Cname] = []
+                    if (Cname in callable_names): # only include if its considered callable
+                        start_parse = True
+                        calls[Cname] = []
                 continue
             if (efunc):
                 start_parse = False
@@ -256,12 +267,22 @@ def ParseFile(filename, callable_names):
             ssub = ssubdef.search(line) # is this a subroutine definition
             esub = esubdef.search(line)
             if (ssub and not(esub)):
-                start_parse = True
                 Cname = ssub.group(4).strip()
                 if (Cname not in calls.keys()):
-                    calls[Cname] = []
+                    if (Cname in callable_names): # only include if its considered callable
+                        start_parse = True
+                        calls[Cname] = []
                 continue
             if (esub):
+                start_parse = False
+                continue
+
+            # catch a few odd instances: trailing "end" or "end function" or "end subroutine"
+            if (line.strip() == "end"):
+                start_parse = False
+                continue
+            l = line.split()
+            if (l[0] == "end" and l[1] in ["function", "subroutine"]):
                 start_parse = False
                 continue
 
